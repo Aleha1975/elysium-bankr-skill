@@ -121,6 +121,8 @@ Only after Step 3 is clean and the user confirms the exact amount and the destin
 
 ## Step 6. Check status and P&L
 
+**Always read the account from Elysium, never from Bankr's own portfolio or token balances.** Most tokens on Elysium have no price in Bankr, so a balance view misses open positions and shows a loss that is not there. In a new conversation there is no token yet: sign in again with the existing-wallet flow in Step 2 (one `personal_sign`, moves nothing), then:
+
 `POST /api/live/state` `{}`. Report in HYPE and USD (price from `/api/ethusd`):
 
 - Value now: `equity_eth` (free cash `eth` + open positions `positions_eth`).
