@@ -1,5 +1,5 @@
 ---
-name: elysium
+name: themonitor
 description: Monitor, autonomous trading intelligence on Elysium (Kinetiq's chain, id 99901), app at app.themonitor.bot. It watches every block, waits for confluence among the strongest on-chain wallets and trades from the user's own smart account. Use when the user wants Monitor to trade part of their HYPE on Elysium, check the status or P&L of that account, sell a position, add funds, stop and withdraw everything, or revoke its permissions. The funds sit in the user's own smart account; the Bankr wallet signs scoped, time-limited permissions and sends one deposit transfer.
 tags: [trading, autonomous-trading, smart-money, elysium, hype, defi]
 version: 1
