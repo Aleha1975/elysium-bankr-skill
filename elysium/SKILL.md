@@ -23,7 +23,7 @@ Elysium (https://elysium.dispatch.cash, run by Dispatch) watches a list of profi
   2. `approve`: the same key may approve token spending, with the spender fixed to that contract.
   3. `withdraw`: the key may send native HYPE out of the account **only to the user's own wallet address**.
   4. `feegas`: the key may pay the performance fee and a gas refund, **only to the fee address** (`0x509c3978687c9fb3e94a11b84703796f75f51588`), up to a cap.
-- The user can stop at any time (agents stop, positions are sold, cash is withdrawn to the Bankr wallet), and can revoke the permissions from their wallet. Withdrawals are sent by the Elysium server; if it is unreachable, say so and tell the user to retry later.
+- The user can stop at any time (agents stop, positions are sold, cash is withdrawn to the Bankr wallet), and can revoke the permissions on chain from their own wallet (Step 9). Withdrawals are sent by the Elysium server; if it is unreachable, say so and tell the user to retry later.
 - The agent must never ask the user to sign or send anything other than what is described in this file.
 
 ## Requirements on the Bankr side
@@ -100,7 +100,7 @@ Refuse and tell the user if any of these fail:
 - `message.delegator == account` (from `state`, or the computed address in Step 2) and `message.delegate == executor` (from `state`).
 - `message.authority == 0xffff...ffff` (64 f).
 - Targets: for `swap` the caveat whose terms are exactly one address must be the guarded swap contract; for `withdraw` it must be `ME`; for `feegas` it must be the fee address. For `approve` the allowed-calldata term must end with the guarded swap contract address (padded to 32 bytes) and the allowed method must be `0x095ea7b3`.
-- Only these kinds are ever requested: `swap`, `approve`, `withdraw`, `feegas`.
+- Only these kinds are ever requested: `swap`, `approve`, `withdraw`, `feegas`. The only other typed data the agent ever signs is the revoke `PackedUserOperation` in Step 9, after the checks listed there.
 
 ## Step 4. Deposit
 
@@ -149,9 +149,21 @@ Show the user what will happen and ask for confirmation, then:
 1. `POST /api/live/follow` `{"leaders":<current follow.leaders>,"ticket_eth":<current follow.ticket_eth>,"active":false,"take_x":<current>}`.
 2. `POST /api/live/sellall` `{}`, poll the job. If some items have `why`, tell the user which could not be sold; they stay in the account and the step can be repeated later.
 3. `state`; if `eth` > 0: `POST /api/live/withdraw` `{"amount":"all"}` (or a decimal HYPE amount for part of the free cash), poll the job. A performance fee on profit above the high-water mark is taken first; `fees_eth` shows it.
-4. The HYPE arrives in the Bankr wallet on Elysium. Check with `GET /api/balance/ME`. Moving it back to HyperEVM is Bankr's own bridge, and the exit from Elysium takes about 6 days.
+4. The HYPE arrives in the Bankr wallet on Elysium. `state` again and report the amount actually sent: `withdrawn_eth` (already after the fee) and the fee `fees_eth`, not the account value before the fee. Check the wallet with `GET /api/balance/ME`. Moving it back to HyperEVM is Bankr's own bridge, and the exit from Elysium takes about 6 days.
 
 Optionally `POST /api/logout` `{}` (with the bearer header) to end the session.
+
+## Step 9. Revoke the permissions (optional, on chain)
+
+Stopping (Step 8) already ends trading. If the user also wants the four permissions cancelled on chain, so that nothing can ever act on the account again, the user's own wallet does it. This is one EIP-712 signature and one transaction sent by the Bankr wallet; nothing is handed out signed-but-unsent. The account can be empty; the wallet pays the gas of its own transaction (a fraction of a cent in HYPE).
+
+1. `POST /api/live/delegations` `{}` -> `{account, delegation_manager, delegations}`. Save it as `delegations.json`.
+2. `node scripts/revoke.mjs prepare ME delegations.json`. The script checks that `account` is owned by `ME`, that every permission belongs to that account, and which ones are still active, then prints `summary` and `typedData`. Stop if it prints `STOP`.
+3. Check `typedData` before signing: `domain.name == "HybridDeleGator"`, `domain.chainId == 99901`, `domain.verifyingContract == account`, `primaryType == "PackedUserOperation"`, `message.sender == account`, `message.entryPoint == 0x0000000071727De22E5E9d8BAf0edAc6f37da032`, `message.gasFees` and `message.paymasterAndData` empty (zero). Show the user `summary.to_revoke` and ask for confirmation.
+4. Sign with `POST https://api.bankr.bot/wallet/sign` `{"signatureType":"eth_signTypedData_v4","typedData":<typedData>}` -> `SIG`.
+5. `node scripts/revoke.mjs tx ME SIG`. The script checks that `SIG` was made by `ME` and simulates the transaction, then prints `transaction` (`to` is the EntryPoint, `chainId` 99901, `value` 0) and `estimated_gas` (well under 1,000,000).
+6. Send it with `POST https://api.bankr.bot/wallet/submit` `{"transaction":<transaction>,"description":"Revoke Elysium permissions","waitForConfirmation":true}`.
+7. `node scripts/revoke.mjs check ME delegations.json` must show `revoked: true` for every permission. Tell the user it is done. To use Elysium again later, the user simply signs new permissions (Step 3).
 
 ## Errors
 
