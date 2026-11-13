@@ -37,7 +37,7 @@ Monitor (https://themonitor.bot, app at https://app.themonitor.bot/app/) is an a
 
 | Item | Value |
 |---|---|
-| API base | `https://elysium.dispatch.cash/api` |
+| API base | `https://app.themonitor.bot/api` |
 | Chain id | 99901 (RPC `https://rpc.agoradex.app`, `https://rpc-live.elysp.com`) |
 | Delegation manager (typed-data `verifyingContract`) | `0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3` |
 | Executor (typed-data `delegate`) | value of `executor` in `/live/state` (production: `0x7Fea74C5eB9acaeFd7fC2f9c627b5d286E134940`) |
@@ -53,7 +53,7 @@ If any call answers `403 Request not allowed from this page.`, the agent access 
 
 - `GET /api/status` -> `{chain: 99901, traders}`.
 - `GET /api/ethusd` -> `{usd}` is the HYPE price in USD. If it has `stale: true` and `age` over 300, do not move money.
-- `GET https://elysium.dispatch.cash/app/strategies.json` -> `strategies[]` with `id` (`elite` = Aggressive, 20% fee, 7% of the account per buy; `wave` = Balanced, 15% fee, 5% per buy), `leaders[]` (ids like `E4`), `ticket_pct`, `take_x`, `status`, `bt`. Read `status` and `bt` and tell the user what they say (at the time of writing: dry-run, no backtest, forward validation required).
+- `GET https://app.themonitor.bot/app/strategies.json` -> `strategies[]` with `id` (`elite` = Aggressive, 20% fee, 7% of the account per buy; `wave` = Balanced, 15% fee, 5% per buy), `leaders[]` (ids like `E4`), `ticket_pct`, `take_x`, `status`, `bt`. Read `status` and `bt` and tell the user what they say (at the time of writing: dry-run, no backtest, forward validation required).
 - `GET /api/leaders` -> map of leader id to `{short, verdict, note}`. Drop any leader whose `verdict` is `reject`.
 - `GET /api/balance/{address}` -> `{eth}` native HYPE balance of any address on Elysium.
 
