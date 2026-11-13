@@ -1,23 +1,23 @@
 ---
 name: elysium
-description: Copy-trade on Elysium (Kinetiq's chain, id 99901) with the Elysium app at elysium.dispatch.cash. Use when the user wants to follow the best-performing Elysium DEX wallets with part of their HYPE, check the status or P&L of that account, sell a position, add funds, or stop and withdraw everything. The funds sit in the user's own smart account; the Bankr wallet signs scoped, time-limited permissions and sends one deposit transfer.
-tags: [trading, copy-trading, elysium, hype, defi]
+description: Monitor, autonomous trading intelligence on Elysium (Kinetiq's chain, id 99901), app at app.themonitor.bot. It watches every block, waits for confluence among the strongest on-chain wallets and trades from the user's own smart account. Use when the user wants Monitor to trade part of their HYPE on Elysium, check the status or P&L of that account, sell a position, add funds, stop and withdraw everything, or revoke its permissions. The funds sit in the user's own smart account; the Bankr wallet signs scoped, time-limited permissions and sends one deposit transfer.
+tags: [trading, autonomous-trading, smart-money, elysium, hype, defi]
 version: 1
 metadata:
   clawdbot:
-    homepage: "https://elysium.dispatch.cash"
+    homepage: "https://app.themonitor.bot/app/"
     requires:
       bins: [curl, jq]
       packages: [viem@2.57.16]
 ---
 
-# Elysium copy-trading
+# Monitor on Elysium
 
-Elysium (https://elysium.dispatch.cash, run by Dispatch) watches a list of profitable wallets on the Elysium chain (id 99901, gas coin HYPE) and repeats their buys and sells from the user's own smart account, in proportion to a size the user picks. The fee is 15% (Balanced) or 20% (Aggressive) of profit above the account's high-water mark, taken when money is withdrawn. No performance is promised: these are new, unvalidated wallets on a young chain, and meme-coin trading can lose most of the money put in.
+Monitor (https://themonitor.bot, app at https://app.themonitor.bot/app/) is an autonomous trading agent on the Elysium chain (id 99901, gas coin HYPE). It watches every block, tracks the strongest on-chain wallets, waits for confluence and trades from the user's own smart account, with a per-trade size the user picks. The fee is 15% (Balanced) or 20% (Aggressive) of profit above the account's high-water mark, taken when money is withdrawn. No performance is promised: these are new, unvalidated wallets on a young chain, and meme-coin trading can lose most of the money put in.
 
 ## What the user is agreeing to
 
-- **Non-custodial.** Funds are held by a smart account that the user's wallet owns. Dispatch cannot move them except within the permissions below.
+- **Non-custodial.** Funds are held by a smart account that the user's wallet owns. Monitor cannot move them except within the permissions below.
 - **Four permissions, each an EIP-712 signature by the user's wallet** (about one year, then they must be renewed):
   1. `swap`: Elysium's server key may call only `buy` and `sell` on one guarded swap contract (`0x795f8ff1d458a168b78e3c37c028fb834d1146d5`), up to a per-call value cap and a 24-hour cap, and a fixed number of calls. The contract pays swap output only to the user's account.
   2. `approve`: the same key may approve token spending, with the spender fixed to that contract.
@@ -109,7 +109,7 @@ Only after Step 3 is clean and the user confirms the exact amount and the destin
 - Send the amount as native HYPE **on Elysium (chain id 99901)** from the Bankr wallet to `account`. Either use Bankr's normal transfer ("send X HYPE on Elysium to ACCOUNT"), or the raw call: `POST https://api.bankr.bot/wallet/submit` body `{"transaction":{"to":ACCOUNT,"chainId":99901,"value":"<wei>"},"description":"Deposit to Elysium account","waitForConfirmation":true}`. Plain transfer, no calldata; gas is about 21,000 to 100,000 (under the 3,000,000 limit) and costs a fraction of a cent in HYPE.
 - Poll `POST /api/live/state` every 3 s for up to 2 minutes until `deposits_eth` has grown by the amount. If it has not, do not resend; tell the user and check the transaction hash.
 
-## Step 5. Start following
+## Step 5. Start Monitor
 
 `POST /api/live/follow`:
 
@@ -138,7 +138,7 @@ Only after Step 3 is clean and the user confirms the exact amount and the destin
 - Sell one position: `POST /api/live/sell` `{"token":"<token address from positions>"}` -> job, then poll (below). Confirm with the user first.
 - Add to a position from free cash: `POST /api/live/add` `{"token":TOKEN,"eth":"<HYPE>"}` -> job, poll. The free cash must cover amount plus 0.0003 HYPE.
 - Add funds: repeat Step 4. Per-buy size does not change by itself; offer to raise it (Step 5 again; a larger size can need a new `swap` signature as noted).
-- Pause or resume following: `follow` again with `active:false` or `active:true` and the same other fields.
+- Pause or resume trading: `follow` again with `active:false` or `active:true` and the same other fields.
 
 **Job polling.** `sell`, `add`, `sellall` and `withdraw` return at once and run in the background. Poll `POST /api/live/job` `{}` every 3 s, for up to 3 minutes, until `done` is true. `error` set means it failed (show the text, do not retry blindly). For `sellall` the result is `{sold:[{sym, why?}]}`; an item with `why` was not sold. For `withdraw` the result is `{ok:true}`.
 
